@@ -4,15 +4,38 @@
 <meta charset="UTF-8">
 <title>Verification Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Supabase library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body{margin:0;background:#0b1220;color:#e6ebff;font-family:Segoe UI}
 .container{padding:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.panel{background:#111a2e;border:1px solid #1f2a44;border-radius:10px;padding:14px;min-height:420px;display:flex;flex-direction:column}
-textarea{flex:1;background:#0e1628;border:1px solid #1f2a44;border-radius:8px;color:#fff;padding:10px}
-button{padding:10px 14px;border-radius:8px;border:none;font-weight:600;cursor:pointer}
+.panel{
+  background:#111a2e;
+  border:1px solid #1f2a44;
+  border-radius:10px;
+  padding:14px;
+  min-height:420px;
+  display:flex;
+  flex-direction:column
+}
+textarea{
+  flex:1;
+  background:#0e1628;
+  border:1px solid #1f2a44;
+  border-radius:8px;
+  color:#fff;
+  padding:10px
+}
+button{
+  padding:10px 14px;
+  border-radius:8px;
+  border:none;
+  font-weight:600;
+  cursor:pointer
+}
 .primary{background:#4da3ff;color:#061427}
 .secondary{background:#0e1628;color:#fff;border:1px solid #1f2a44}
 .results{flex:1;overflow:auto;font-size:14px}
@@ -28,12 +51,14 @@ button{padding:10px 14px;border-radius:8px;border:none;font-weight:600;cursor:po
 <div class="container">
   <div class="grid">
 
+    <!-- INPUT -->
     <div class="panel">
       <h3>✏️ Input</h3>
       <textarea id="urls" placeholder="Paste URLs here, one per line"></textarea>
       <button class="primary" style="margin-top:10px" onclick="start()">Start Verification</button>
     </div>
 
+    <!-- RESULTS -->
     <div class="panel">
       <h3>📊 Results</h3>
       <div class="results" id="results"></div>
@@ -47,25 +72,31 @@ button{padding:10px 14px;border-radius:8px;border:none;font-weight:600;cursor:po
 </div>
 
 <script>
-const supabase = supabase.createClient(
+/* ✅ إنشاء العميل باسم مختلف */
+const db = supabase.createClient(
   "https://fzcicbcsluwddsveuwuz.supabase.co",
   "sb_publishable_9LxZm61-e-WeXVwGFwRb6w_QLoLn2qW"
 );
 
+/* ✅ زر التحقق */
 async function start(){
   const text = document.getElementById("urls").value.trim();
-  if(!text) return;
+  if(!text) return alert("No URLs entered");
 
   const urls = text.split("\n").map(u=>u.trim()).filter(Boolean);
 
   for(const url of urls){
-    const { data } = await supabase
+    const { data, error } = await db
       .from("verifications")
       .insert({ url, status:"pending" })
       .select()
       .single();
 
-    // ⚠️ بدون Authorization
+    if(error){
+      alert(error.message);
+      return;
+    }
+
     await fetch(
       "https://fzcicbcsluwddsveuwuz.functions.supabase.co/check-url",
       {
@@ -80,8 +111,9 @@ async function start(){
   load();
 }
 
+/* ✅ تحميل النتائج */
 async function load(){
-  const { data } = await supabase
+  const { data } = await db
     .from("verifications")
     .select("*")
     .order("created_at",{ascending:false});
@@ -100,11 +132,13 @@ async function load(){
   });
 }
 
+/* ✅ مسح */
 async function clearAll(){
-  await supabase.from("verifications").delete().neq("id","0");
+  await db.from("verifications").delete().neq("id","0");
   load();
 }
 
+/* تحميل تلقائي */
 load();
 </script>
 
